@@ -1,0 +1,459 @@
+<html>
+	<head>
+		<title>PCB 2 GCode</title>
+
+		<script type="text/javascript">
+			var options_obj={};
+			var help_obj={};
+			var mill_layer_data="";
+			var drill_layer_data="";
+			var mill_blob;
+			var drill_blob;
+
+			function title_case(str)
+			{
+				return str.replace(/\w\S*/g,function(txt){return txt.charAt(0).toUpperCase()+txt.substr(1).toLowerCase();});
+			}
+
+			function replace_letters(change_this,with_this,in_this)
+			{
+				var re=new RegExp(change_this,"g");
+				return in_this.replace(re,with_this);
+			}
+
+			function format_numbers(input)
+			{
+				input.value=input.value.replace(/[ -,:-~\/]/g,"");
+
+				if(input.value.length>0&&input.value.substr(1,input.value.length-1).indexOf("-")>-1)
+					input.value=input.value.substr(0,1)+input.value.substr(1,input.value.length-1).replace(/[-]/g,"");
+
+				if(input.value.indexOf(".")>-1)
+					if(input.value.substr(input.value.indexOf("."),input.value.length-input.value.indexOf(".")).indexOf(".")>-1)
+						input.value=input.value.substr(0,input.value.indexOf(".")+1)+input.value.substr(input.value.indexOf(".")+1,input.value.length-(input.value.indexOf(".")+1)).replace(/[.]/g,"");
+			}
+
+			function BinaryToString(binary)
+			{
+				var error;
+
+				try
+				{
+					return decodeURIComponent(escape(binary));
+				}
+				catch(_error)
+				{
+					error=_error;
+					if(error instanceof URIError)
+						return binary;
+					else
+						throw error;
+				}
+			}
+
+			function ArrayBufferToString(buffer)
+			{
+				return BinaryToString(String.fromCharCode.apply(null,Array.prototype.slice.apply(new Uint8Array(buffer))));
+			}
+
+			function initialize()
+			{
+				load_defaults();
+
+				help_obj.z={};
+					help_obj.z.work="Z-coordinate at which engraving happens.";
+					help_obj.z.safe="Z-coordinate for movements between engraving steps.";
+					help_obj.z.cut="Z-coordinate indicating where the outline cutting ends.";
+					help_obj.z.drill="Z value down to which will be drilled.";
+					help_obj.z.change="Z-coordinate for movements with the drill head.";
+
+				help_obj.cut={};
+					help_obj.cut.diameter="Amount by half of which the tool path is outset from the shape in the outline file.";
+					help_obj.cut.feed="Feed rate at which outline cutting takes place (horizontal speed per minute).";
+					help_obj.cut.speed="Spindle speed during outline cutting (rounds per minute).";
+					help_obj.cut.infeed="Maximum Z distance that is cut away in a single pass (positive value; if less then Z Cut's value, there will be more than one pass).";
+
+				help_obj.outline={};
+					help_obj.outline.fill="If given, it is assumed that the outline file contains not a polygon but a closed chain of lines.  The board will be cut along the centres of these lines.";
+					help_obj.outline.width="Thickness of the lines that form the outline (if Outline Fill is given).";
+
+				help_obj.mill={};
+					help_obj.mill.feed="Feed rate at which engraving takes place (horizontal speed per minute).";
+					help_obj.mill.speed="Spindle speed during engraving (rounds per minute).";
+
+				help_obj.drill={};
+					help_obj.drill.feed="Feed rate for drilling (vertical speed per minute).";
+					help_obj.drill.speed="Spindle speed during drilling (rounds per minute).";
+
+				help_obj.other={};
+					help_obj.other.offset="Distance by which the tool movement will be outset from the contours in the gerber file to be engraved.  This behavior can be used to get voronoi-style (flood-filling) areas; simply set the offset to a large value (like 1 inch).";
+					help_obj.other.extra_passes="Number of additional isolation passes.  For each extra pass, engraving is repeated with the offset width increased by half its original value, creating wider isolation areas.";
+					help_obj.other.use_mill_as_drill="If set, the milling head will be used to drill the holes in the PCB.  Holes up to the size of the milling head will be drilled regularly (possibly creating a bigger hole than intended), the other holes are created by moving the head in circles using the feed and infeed parameters used in cutting.";
+					help_obj.other.drill_front="Use the coordinates of the front side for drilling instead of the coordinates of the back side.";
+					help_obj.other.mirror_absolute="Mirror operations on the back side along the Y axis instead of the board center, which is the default.";
+					help_obj.other.return_home="Return to the orginal starting position.  Note, this only returns X and Y, not Z.";
+			}
+
+			function load_defaults()
+			{
+				var xmlhttp=new XMLHttpRequest();
+
+				xmlhttp.open("GET",encodeURIComponent("defaults"),true);
+
+				xmlhttp.onreadystatechange=function()
+				{
+					if(xmlhttp.readyState==4&&xmlhttp.status==200)
+					{
+						try
+						{
+							var test=JSON.parse(xmlhttp.responseText);
+							options_obj=test;
+							update_show_advanced_options();
+						}
+						catch(e)
+						{}
+					}
+				}
+
+				xmlhttp.send(null);
+			}
+
+			function update_show_mill_layer()
+			{
+				var html="";
+
+				if(document.getElementById("use_mill_layer").checked)
+				{
+					html+="<input type='file' id='mill_layer_file' onchange='update_load_mill_layer();'/>\n";
+					html+="<input type='button' id='mill_download_button' value='Download' onclick='download_mill();' disabled/>\n";
+					html+="<br/>\n";
+					html+="<img id='mill_picture' src='empty.png'>&nbsp;<img id='mill_traced' src='empty.png'/>\n";
+
+				}
+
+				document.getElementById("mill_layer").innerHTML=html;
+			}
+
+			function update_show_drill_layer()
+			{
+				var html="";
+
+				if(document.getElementById("use_drill_layer").checked)
+				{
+					html+="<input type='file' id='drill_layer_file' onchange='update_load_drill_layer();'/>\n";
+					html+="<input type='button' id='drill_download_button' value='Download' onclick='download_drill();' disabled/>\n";
+					html+="<br/>\n";
+					html+="<img id='drill_picture' src='empty.png'>&nbsp;<img id='drill_traced' src='empty.png'/>\n";
+				}
+
+				document.getElementById("drill_layer").innerHTML=html;
+			}
+
+			function update_load_mill_layer()
+			{
+				mill_layer_loaded=false;
+				mill_layer_data="";
+				document.getElementById("mill_download_button").disable=true;
+
+				var mill_layer=document.getElementById("mill_layer_file").files[0];
+
+				if(mill_layer)
+				{
+					var reader=new FileReader();
+					reader.readAsText(mill_layer,"UTF-8");
+					reader.onload=function(evt){mill_layer_data=evt.target.result;submit_mill();};
+				}
+			}
+
+			function update_load_drill_layer()
+			{
+				drill_layer_loaded=false;
+				drill_layer_data="";
+				document.getElementById("drill_download_button").disable=true;
+
+				var drill_layer=document.getElementById("drill_layer_file").files[0];
+
+				if(drill_layer)
+				{
+					var reader=new FileReader();
+					reader.readAsText(drill_layer,"UTF-8");
+					reader.onload=function(evt){drill_layer_data=evt.target.result;submit_drill();};
+				}
+			}
+
+			function download_blob(blob,filename)
+			{
+				document.getElementById("downloader").innerHTML="<a id=\"downloader_link\"></a>";
+				document.getElementById("downloader_link").href=window.URL.createObjectURL(blob);
+				document.getElementById("downloader_link").download=filename;
+
+				var evt=document.createEvent("MouseEvents");
+				evt.initMouseEvent("click",true,true,window,0,0,0,0,0,false,false,false,false,0,null);
+				var cb=document.getElementById("downloader_link");
+				var canceled=!cb.dispatchEvent(evt);
+
+				document.getElementById("downloader").innerHTML="";
+			}
+
+			function submit_mill()
+			{
+				var submission={};
+
+				submission.front=mill_layer_data;
+				submission.options=options_obj;
+				mill_blob=undefined;
+				document.getElementById("mill_download_button").disabled=true;
+
+				var xmlhttp=new XMLHttpRequest();
+
+				xmlhttp.open("GET",encodeURIComponent("pcb2gcode="+JSON.stringify(submission)),true);
+				xmlhttp.responseType="blob";
+
+				xmlhttp.onreadystatechange=function()
+				{
+					if(xmlhttp.readyState==4&&xmlhttp.status==200)
+					{
+						mill_blob=xmlhttp.response;
+
+						var reader=new FileReader();
+
+						reader.onload=function()
+						{
+							if(ArrayBufferToString(this.result)=="error")
+							{
+								mill_blob=undefined;
+								alert("Bad Gerber File!");
+							}
+							else
+							{
+								document.getElementById("mill_download_button").disabled=false;
+								get_picture("mill_picture","mill","picture");
+								get_picture("mill_traced","mill","traced");
+							}
+						};
+
+						reader.readAsArrayBuffer(xmlhttp.response);
+					}
+				}
+
+				xmlhttp.send(null);
+			}
+
+			function submit_drill()
+			{
+				var submission={};
+
+				submission.front=drill_layer_data;
+				submission.options=options_obj;
+				drill_blob=undefined;
+				document.getElementById("drill_download_button").disabled=true;
+
+				var xmlhttp=new XMLHttpRequest();
+
+				xmlhttp.open("GET",encodeURIComponent("pcb2gcode="+JSON.stringify(submission)),true);
+				xmlhttp.responseType="blob";
+
+				xmlhttp.onreadystatechange=function()
+				{
+					if(xmlhttp.readyState==4&&xmlhttp.status==200)
+					{
+						drill_blob=xmlhttp.response;
+
+						var reader=new FileReader();
+
+						reader.onload=function()
+						{
+							if(ArrayBufferToString(this.result)=="error")
+							{
+								drill_blob=undefined;
+								alert("Bad Gerber File!");
+							}
+							else
+							{
+								document.getElementById("drill_download_button").disabled=false;
+								get_picture("drill_picture","drill","picture");
+								get_picture("drill_traced","drill","traced");
+							}
+						};
+
+						reader.readAsArrayBuffer(xmlhttp.response);
+					}
+				}
+
+				xmlhttp.send(null);
+			}
+
+			function get_picture(img_element,layer,type)
+			{
+				var submission={};
+
+				if(layer=="mill")
+				{
+					if(type=="picture")
+						submission.picture=mill_layer_data;
+					else if(type=="traced")
+						submission.traced=mill_layer_data;
+				}
+				else if(layer=="drill")
+				{
+					if(type=="picture")
+						submission.picture=drill_layer_data;
+					else if(type=="traced")
+						submission.traced=drill_layer_data;
+				}
+				submission.options=options_obj;
+
+				var xmlhttp=new XMLHttpRequest();
+
+				xmlhttp.open("GET",encodeURIComponent("pcb2gcode="+JSON.stringify(submission)),true);
+				xmlhttp.responseType="arraybuffer";
+
+				xmlhttp.onreadystatechange=function()
+				{
+					if(xmlhttp.readyState==4&&xmlhttp.status==200)
+					{
+						var uInt8Array=new Uint8Array(xmlhttp.response);
+						var binaryString=new Array(uInt8Array.length);
+
+						for(var ii=0;ii<uInt8Array.length;++ii)
+							binaryString[ii]=String.fromCharCode(uInt8Array[ii]);
+
+						document.getElementById(img_element).src="data:image/png;base64,"+window.btoa(binaryString.join(''));
+						document.getElementById(img_element).width=320;
+					}
+				}
+
+				xmlhttp.send(null);
+			}
+
+			function download_mill()
+			{
+				download_blob(mill_blob,"front.ngc");
+			}
+
+			function download_drill()
+			{
+				download_blob(drill_blob,"drill.ngc");
+			}
+
+			function update_show_advanced_options()
+			{
+				if(document.getElementById("show_advanced_options").checked)
+				{
+					var html="";
+
+					html+="<center><table border='1'>";
+
+					for(var ii in options_obj)
+					{
+						html+="<tr><td><b>"+title_case(ii)+" Options</b></td><td></td><td></td></tr>";
+
+						for(var jj in options_obj[ii])
+						{
+							if(jj!="show_name"&&(typeof(options_obj[ii][jj])=="boolean"||
+								typeof(options_obj[ii][jj])=="number"))
+							{
+								html+="<tr><td>";
+
+								if(options_obj[ii].show_name)
+									html+=title_case(ii)+" ";
+
+								html+=title_case(replace_letters("_"," ",jj))+"</td><td>";
+
+								if(typeof(options_obj[ii][jj])=="boolean")
+								{
+									html+="<input type='checkbox' onchange='options_obj."+ii+"."+jj+"=this.checked;'";
+
+									if(options_obj[ii][jj])
+										html+=" checked";
+
+									html+="/>";
+								}
+								else if(typeof(options_obj[ii][jj])=="number")
+								{
+									html+="<input type='text' size='6' value='"+options_obj[ii][jj]+"'onchange='options_obj."+ii+"."+
+										jj+"=parseFloat(this.value);' onkeydown='format_numbers(this);' onkeyup='format_numbers(this);'/>";
+								}
+
+								html+="</td><td style='width:500px;'>"+help_obj[ii][jj]+"</td></tr>";
+							}
+						}
+					}
+
+					html+="</table>";
+
+					html+="<input type='button' value='Load Defaults' onclick='load_defaults();'/></center>";
+
+					document.getElementById("advanced_options").innerHTML=html;
+				}
+				else
+				{
+					document.getElementById("advanced_options").innerHTML="";
+				}
+			}
+		</script>
+	</head>
+	<body onload="initialize();">
+		<center>
+			<table>
+				<tr>
+					<td>
+						<center><h1>PCB 2 GCode</h1></center>
+					</td>
+				</tr>
+				<tr>
+					<td>
+						<center>
+							<table>
+								<tr>
+									<td>
+										<input type="checkbox" id="use_mill_layer" onchange="update_show_mill_layer();"/> Mill Layer
+									</td>
+								</tr>
+								<tr>
+									<td width="660px">
+										<center><div id="mill_layer"></div></center>
+									</td>
+								</tr>
+							</table>
+						</center>
+					</td>
+				</tr>
+				<tr>
+					<td>
+						<center>
+							<table>
+								<tr>
+									<td>
+										<input type="checkbox" id="use_drill_layer" onchange="update_show_drill_layer();"/> Drill Layer
+									</td>
+								</tr>
+								<tr>
+									<td width="660px">
+										<center><div id="drill_layer"></div></center>
+									</td>
+								</tr>
+							</table>
+						</center>
+					</td>
+				</tr>
+				<tr>
+					<td>
+						<center><input type="checkbox" id="show_advanced_options" onchange="update_show_advanced_options();"/>Show Advanced Options</center>
+					</td>
+				</tr>
+				<tr>
+					<td>
+						<center><div id="advanced_options" style='width:100%;'></div></center>
+					</td>
+				</tr>
+				<tr>
+					<td>
+						<center><h6>Created by Mike Moss (mrmoss@alaska.edu)</h6></center>
+					</td>
+				</tr>
+			</table>
+		</center>
+		<div id="downloader"></div>
+	</body>
+</html>
