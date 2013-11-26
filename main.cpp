@@ -42,7 +42,7 @@ bool service_client(msl::socket& client,const std::string& message);
 
 //Global Defaults Object
 std::string pcb2gcode_defaults=
-	"{\"z\":{\"work\":-0.007,\"safe\":0.01,\"cut\":-0.007,\"drill\":-0.007,\"change\":1.5},"
+	"{\"z\":{\"work\":-0.007,\"safe\":0.01,\"cut\":-0.007,\"drill\":-0.075,\"change\":1.5},"
 	"\"cut\":{\"diameter\":0.1250,\"feed\":3,\"speed\":1000,\"infeed\":1},"
 	"\"outline\":{\"fill\":false,\"width\":0},"
 	"\"mill\":{\"feed\":3,\"speed\":1000},"
@@ -206,6 +206,8 @@ bool service_client(msl::socket& client,const std::string& message)
 		//Drill Layers
 		else if(json_obj.get("drill").size()>0)
 		{
+			std::cout<<"\t\t\t\tgot a drill file!!!"<<std::endl;
+
 			std::string escaped=json_obj.get("drill");
 			size_t pos=0;
 
@@ -217,7 +219,7 @@ bool service_client(msl::socket& client,const std::string& message)
 
 			msl::string_to_file(escaped,thread_id+"/drill.test");
 			pcb2gcode_command+="--drill drill.test ";
-			pcb2gcode_command+="--front-output drill.ngc ";
+			pcb2gcode_command+="--drill-output drill.ngc ";
 			drill=true;
 		}
 
@@ -263,29 +265,29 @@ bool service_client(msl::socket& client,const std::string& message)
 				pcb2gcode_command+="--offset "+msl::to_string(msl::to_double(json_other.get("offset")))+" ";
 				pcb2gcode_command+="--extra-passes "+msl::to_string(msl::to_int(json_other.get("extra_passes")))+" ";
 
-				if(msl::to_bool(json_other.get("use_mill_as_drill")))
-					pcb2gcode_command+="--milldrill ";
+			if(msl::to_bool(json_other.get("use_mill_as_drill")))
+				pcb2gcode_command+="--milldrill ";
 
-				if(msl::to_bool(json_other.get("drill_front")))
-					pcb2gcode_command+="--drill-front ";
+			if(msl::to_bool(json_other.get("drill_front")))
+				pcb2gcode_command+="--drill-front ";
 
-				if(msl::to_bool(json_other.get("mirror_absolute")))
-					pcb2gcode_command+="--mirror-absolute ";
+			if(msl::to_bool(json_other.get("mirror_absolute")))
+				pcb2gcode_command+="--mirror-absolute ";
 
-				if(msl::to_bool(json_other.get("return_home")))
-				{
-					if(picture)
-						pcb2gcode_command+="&& ./home.sh picture.ngc ";
+			if(msl::to_bool(json_other.get("return_home")))
+			{
+				if(picture)
+					pcb2gcode_command+="&& ./home.sh picture.ngc ";
 
-					else if(traced)
-						pcb2gcode_command+="&& ./home.sh traced.ngc ";
+				else if(traced)
+					pcb2gcode_command+="&& ./home.sh traced.ngc ";
 
-					else if(front)
-						pcb2gcode_command+="&& ./home.sh front.ngc ";
+				else if(front)
+					pcb2gcode_command+="&& ./home.sh front.ngc ";
 
-					else if(drill)
-						pcb2gcode_command+="&& ./home.sh drill.ngc ";
-				}
+				else if(drill)
+					pcb2gcode_command+="&& ./home.sh drill.ngc ";
+			}
 
 			//Execute PCB2GCode Command
 			if(system(pcb2gcode_command.c_str())!=-1)
