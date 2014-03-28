@@ -40,9 +40,30 @@
 //Our Service Client Function Declaration
 bool service_client(msl::socket& client,const std::string& message);
 
+std::string fix_newlines(std::string str)
+{
+	size_t pos=0;
+
+	while((pos=str.find("\\r",pos))!=std::string::npos)
+	{
+		str.replace(pos,4,"\n");
+		pos+=1;
+	}
+
+	pos=0;
+
+	while((pos=str.find("\\n",pos))!=std::string::npos)
+	{
+		str.replace(pos,2,"\n");
+		pos+=1;
+	}
+
+	return str;
+}
+
 //Global Defaults Object
 std::string pcb2gcode_defaults=
-	"{\"z\":{\"work\":-0.007,\"safe\":0.01,\"cut\":-0.007,\"drill\":-0.075,\"change\":1.5},"
+	"{\"z\":{\"work\":-0.007,\"safe\":0.2,\"cut\":-0.007,\"drill\":-0.075,\"change\":0.2},"
 	"\"cut\":{\"diameter\":0.1250,\"feed\":3,\"speed\":1000,\"infeed\":1},"
 	"\"outline\":{\"fill\":false,\"width\":0},"
 	"\"mill\":{\"feed\":3,\"speed\":1000},"
@@ -62,6 +83,7 @@ int main(int argc,char* argv[])
 
 	//Create Server
 	msl::webserver_threaded server("0.0.0.0:"+server_port,service_client);
+	server.set_max_upload_size(2*90000000);
 	server.setup();
 
 	//Check Server
@@ -127,7 +149,6 @@ bool service_client(msl::socket& client,const std::string& message)
 		//Selection Booleans for Later
 		bool error=false;
 		bool picture=false;
-		bool traced=false;
 		bool front=false;
 		bool drill=false;
 
@@ -152,14 +173,8 @@ bool service_client(msl::socket& client,const std::string& message)
 		//Pictures
 		if(json_obj.get("picture").size()>0)
 		{
-			std::string escaped=json_obj.get("picture");
-			size_t pos=0;
+			std::string escaped=fix_newlines(json_obj.get("picture"));
 
-			while((pos=escaped.find("\\n",pos))!=std::string::npos)
-			{
-				escaped.replace(pos,2,"\n");
-				pos+=1;
-			}
 
 			msl::string_to_file(escaped,thread_id+"/picture.test");
 			pcb2gcode_command+="--front picture.test ";
@@ -167,35 +182,10 @@ bool service_client(msl::socket& client,const std::string& message)
 			picture=true;
 		}
 
-		//Outline Traces
-		else if(json_obj.get("traced").size()>0)
-		{
-			std::string escaped=json_obj.get("traced");
-			size_t pos=0;
-
-			while((pos=escaped.find("\\n",pos))!=std::string::npos)
-			{
-				escaped.replace(pos,2,"\n");
-				pos+=1;
-			}
-
-			msl::string_to_file(escaped,thread_id+"/traced.test");
-			pcb2gcode_command+="--front traced.test ";
-			pcb2gcode_command+="--front-output traced.ngc ";
-			traced=true;
-		}
-
 		//Mill Layers
 		else if(json_obj.get("front").size()>0)
 		{
-			std::string escaped=json_obj.get("front");
-			size_t pos=0;
-
-			while((pos=escaped.find("\\n",pos))!=std::string::npos)
-			{
-				escaped.replace(pos,2,"\n");
-				pos+=1;
-			}
+			std::string escaped=fix_newlines(json_obj.get("front"));
 
 			msl::string_to_file(escaped,thread_id+"/front.test");
 			pcb2gcode_command+="--front front.test ";
@@ -208,14 +198,7 @@ bool service_client(msl::socket& client,const std::string& message)
 		{
 			std::cout<<"\t\t\t\tgot a drill file!!!"<<std::endl;
 
-			std::string escaped=json_obj.get("drill");
-			size_t pos=0;
-
-			while((pos=escaped.find("\\n",pos))!=std::string::npos)
-			{
-				escaped.replace(pos,2,"\n");
-				pos+=1;
-			}
+			std::string escaped=fix_newlines(json_obj.get("drill"));
 
 			msl::string_to_file(escaped,thread_id+"/drill.test");
 			pcb2gcode_command+="--drill drill.test ";
@@ -224,7 +207,7 @@ bool service_client(msl::socket& client,const std::string& message)
 		}
 
 		//Check for a Gerber File
-		if(picture||traced||front||drill)
+		if(picture||front||drill)
 		{
 			//Extract Z Options
 			msl::json json_z(json_options.get("z"));
@@ -279,15 +262,14 @@ bool service_client(msl::socket& client,const std::string& message)
 				if(picture)
 					pcb2gcode_command+="&& ./home.sh picture.ngc ";
 
-				else if(traced)
-					pcb2gcode_command+="&& ./home.sh traced.ngc ";
-
 				else if(front)
 					pcb2gcode_command+="&& ./home.sh front.ngc ";
 
 				else if(drill)
 					pcb2gcode_command+="&& ./home.sh drill.ngc ";
 			}
+
+			std::cout<<"COMMAND\n"<<pcb2gcode_command<<"\nCOMMAND"<<std::endl;
 
 			//Execute PCB2GCode Command
 			if(system(pcb2gcode_command.c_str())!=-1)
@@ -299,16 +281,6 @@ bool service_client(msl::socket& client,const std::string& message)
 					std::string gcode;
 
 					if(msl::file_to_string(thread_id+"/outp0_original_front.png",gcode))
-						response=msl::http_pack_string(gcode,"image/png");
-					else
-						error=true;
-				}
-
-				else if(traced)
-				{
-					std::string gcode;
-
-					if(msl::file_to_string(thread_id+"/outp1_traced.png",gcode))
 						response=msl::http_pack_string(gcode,"image/png");
 					else
 						error=true;

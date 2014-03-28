@@ -10,6 +10,22 @@
 			var mill_blob;
 			var drill_blob;
 
+			function ab2str(buf)
+			{
+				return String.fromCharCode.apply(null,new Uint16Array(buf));
+			}
+
+			function str2ab(str)
+			{
+				var buf=new ArrayBuffer(str.length*2);
+				var bufView=new Uint16Array(buf);
+
+				for(var ii=0,strLen=str.length;i<istrLen;++ii)
+					bufView[ii]=str.charCodeAt(ii);
+
+				return buf;
+			}
+
 			function title_case(str)
 			{
 				return str.replace(/\w\S*/g,function(txt){return txt.charAt(0).toUpperCase()+txt.substr(1).toLowerCase();});
@@ -53,7 +69,14 @@
 
 			function ArrayBufferToString(buffer)
 			{
-				return BinaryToString(String.fromCharCode.apply(null,Array.prototype.slice.apply(new Uint8Array(buffer))));
+				try
+				{
+					return ab2str(buffer);
+				}
+				catch(e)
+				{
+					return "error";
+				}
 			}
 
 			function initialize()
@@ -127,7 +150,7 @@
 					html+="<input type='file' id='mill_layer_file' onchange='update_load_mill_layer();'/>\n";
 					html+="<input type='button' id='mill_download_button' value='Download' onclick='download_mill();' disabled/>\n";
 					html+="<br/>\n";
-					html+="<img id='mill_picture' src='empty.png'>&nbsp;<img id='mill_traced' src='empty.png'/>\n";
+					html+="<img id='mill_picture' src='empty.png'>\n";
 
 				}
 
@@ -143,7 +166,7 @@
 					html+="<input type='file' id='drill_layer_file' onchange='update_load_drill_layer();'/>\n";
 					html+="<input type='button' id='drill_download_button' value='Download' onclick='download_drill();' disabled/>\n";
 					html+="<br/>\n";
-					html+="<img id='drill_picture' src='empty.png'>&nbsp;<img id='drill_traced' src='empty.png'/>\n";
+					html+="<img id='drill_picture' src='empty.png'>\n";
 				}
 
 				document.getElementById("drill_layer").innerHTML=html;
@@ -228,7 +251,6 @@
 							{
 								document.getElementById("mill_download_button").disabled=false;
 								get_picture("mill_picture","mill","picture");
-								get_picture("mill_traced","mill","traced");
 							}
 						};
 
@@ -243,7 +265,7 @@
 			{
 				var submission={};
 
-				submission.drill=drill_layer_data;
+				submission.front=drill_layer_data;
 				submission.options=options_obj;
 				drill_blob=undefined;
 				document.getElementById("drill_download_button").disabled=true;
@@ -272,7 +294,6 @@
 							{
 								document.getElementById("drill_download_button").disabled=false;
 								get_picture("drill_picture","drill","picture");
-								get_picture("drill_traced","drill","traced");
 							}
 						};
 
@@ -291,15 +312,11 @@
 				{
 					if(type=="picture")
 						submission.picture=mill_layer_data;
-					else if(type=="traced")
-						submission.traced=mill_layer_data;
 				}
 				else if(layer=="drill")
 				{
 					if(type=="picture")
 						submission.picture=drill_layer_data;
-					else if(type=="traced")
-						submission.traced=drill_layer_data;
 				}
 				submission.options=options_obj;
 
