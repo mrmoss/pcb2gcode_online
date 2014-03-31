@@ -3,6 +3,7 @@
 		<title>PCB 2 GCode</title>
 
 		<script type="text/javascript">
+			var url_prefix="";
 			var options_obj={};
 			var help_obj={};
 			var mill_layer_data="";
@@ -121,7 +122,7 @@
 			{
 				var xmlhttp=new XMLHttpRequest();
 
-				xmlhttp.open("POST",encodeURIComponent("defaults"),true);
+				xmlhttp.open("POST",encodeURIComponent(url_prefix),true);
 
 				xmlhttp.onreadystatechange=function()
 				{
@@ -138,7 +139,7 @@
 					}
 				}
 
-				xmlhttp.send(null);
+				xmlhttp.send("/defaults");
 			}
 
 			function update_show_mill_layer()
@@ -150,7 +151,7 @@
 					html+="<input type='file' id='mill_layer_file' onchange='update_load_mill_layer();'/>\n";
 					html+="<input type='button' id='mill_download_button' value='Download' onclick='download_mill();' disabled/>\n";
 					html+="<br/>\n";
-					html+="<img id='mill_picture' src='empty.png'>\n";
+					html+="<img id='mill_picture' src='"+url_prefix+"empty.png'>\n";
 
 				}
 
@@ -166,7 +167,7 @@
 					html+="<input type='file' id='drill_layer_file' onchange='update_load_drill_layer();'/>\n";
 					html+="<input type='button' id='drill_download_button' value='Download' onclick='download_drill();' disabled/>\n";
 					html+="<br/>\n";
-					html+="<img id='drill_picture' src='empty.png'>\n";
+					html+="<img id='drill_picture' src='"+url_prefix+"empty.png'>\n";
 				}
 
 				document.getElementById("drill_layer").innerHTML=html;
@@ -229,7 +230,7 @@
 
 				var xmlhttp=new XMLHttpRequest();
 
-				xmlhttp.open("POST",encodeURIComponent("pcb2gcode="+JSON.stringify(submission)),true);
+				xmlhttp.open("POST",encodeURIComponent(url_prefix),true);
 				xmlhttp.responseType="blob";
 
 				xmlhttp.onreadystatechange=function()
@@ -258,7 +259,7 @@
 					}
 				}
 
-				xmlhttp.send(null);
+				xmlhttp.send(encodeURIComponent("/pcb2gcode="+JSON.stringify(submission)));
 			}
 
 			function submit_drill()
@@ -272,7 +273,7 @@
 
 				var xmlhttp=new XMLHttpRequest();
 
-				xmlhttp.open("POST",encodeURIComponent("pcb2gcode="+JSON.stringify(submission)),true);
+				xmlhttp.open("POST",encodeURIComponent(url_prefix),true);
 				xmlhttp.responseType="blob";
 
 				xmlhttp.onreadystatechange=function()
@@ -301,7 +302,7 @@
 					}
 				}
 
-				xmlhttp.send(null);
+				xmlhttp.send(encodeURIComponent("/pcb2gcode="+JSON.stringify(submission)));
 			}
 
 			function get_picture(img_element,layer,type)
@@ -322,7 +323,7 @@
 
 				var xmlhttp=new XMLHttpRequest();
 
-				xmlhttp.open("POST",encodeURIComponent("pcb2gcode="+JSON.stringify(submission)),true);
+				xmlhttp.open("POST",encodeURIComponent(url_prefix),true);
 				xmlhttp.responseType="arraybuffer";
 
 				xmlhttp.onreadystatechange=function()
@@ -340,7 +341,7 @@
 					}
 				}
 
-				xmlhttp.send(null);
+				xmlhttp.send(encodeURIComponent("/pcb2gcode="+JSON.stringify(submission)));
 			}
 
 			function download_mill()

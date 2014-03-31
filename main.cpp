@@ -112,10 +112,52 @@ bool service_client(msl::socket& client,const std::string& message)
 	//Create Parser
 	std::istringstream istr(message);
 
+	//std::cout<<message<<std::endl;
+
+	//Parse the Type
+	std::string type;
+	istr>>type;
+
 	//Parse the Request
 	std::string request;
 	istr>>request;
-	istr>>request;
+
+	if(type=="POST")
+	{
+		std::string temp="";
+		unsigned int length=0;
+
+		for(unsigned int ii=0;ii<message.size();++ii)
+		{
+			if(message[ii]=='\n')
+			{
+				std::string var;
+				std::string val;
+
+				std::istringstream istr(temp);
+
+				istr>>var;
+				istr>>val;
+
+				if(var=="Content-Length:")
+				{
+					length=msl::to_int(val);
+					char* buffer=new char[length];
+					client.read(buffer,length);
+					request=std::string(buffer,length);
+
+					std::cout<<request<<std::endl;
+					break;
+				}
+
+				temp="";
+			}
+			else
+			{
+				temp+=message[ii];
+			}
+		}
+	}
 
 	//Translate Request
 	request=msl::http_to_ascii(request);
