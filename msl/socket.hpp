@@ -70,8 +70,8 @@ namespace msl
 			unsigned short _port;
 	};
 
-	//Socket Class Declaration (NOT SURE IF BEING A STD::OSTREAM CHILD IS THE WAY TO GO HERE)
-	class socket:public std::ostream
+	//Socket Class Declaration
+	class socket
 	{
 		public:
 			//Constructor (Default)
@@ -88,6 +88,12 @@ namespace msl
 
 			//Not Operator (For Boolean Operator)
 			bool operator!() const;
+
+			//Equality Operation
+			bool operator==(const msl::socket& rhs) const;
+
+			//Not Equality Operation
+			bool operator!=(const msl::socket& rhs) const;
 
 			//Good Function (Tests if Socket is Good)
 			bool good() const;
@@ -110,10 +116,10 @@ namespace msl
 			int available() const;
 
 			//Read Function (Returns Number of Bytes Read, -1 on Error)
-			int read(void* buffer,const unsigned int size,const long time_out=0,const int flags=0) const;
+			int read(void* buffer,const unsigned int size,const unsigned long time_out=0,const int flags=0) const;
 
 			//Write Function (Returns Number of Bytes Sent, -1 on Error)
-			int write(const void* buffer,const unsigned int size,const long time_out=0,const int flags=0) const;
+			int write(const void* buffer,const unsigned int size,const unsigned long time_out=0,const int flags=0) const;
 
 			//IP Address Accessor (Read Only)
 			msl::ipv4 ip() const;
@@ -121,59 +127,40 @@ namespace msl
 			//System Socket Accessor
 			SOCKET system_socket() const;
 
-			//Stream Out Operator
-			template <typename T> friend msl::socket& operator<<(msl::socket& lhs,const T& rhs);
-
 		private:
 			//Member Variables
 			msl::ipv4 _address;
 			SOCKET _socket;
 			bool _hosting;
 	};
-
-	//Socket Class Stream Operator (Templated Function)
-	template <typename T> msl::socket& operator<<(msl::socket& lhs,const T& rhs)
-	{
-		//Create a String Stream
-		std::ostringstream ostr;
-
-		//Put in Data
-		ostr<<rhs;
-
-		//Write Data
-		lhs.write(reinterpret_cast<void*>(const_cast<char*>(ostr.str().c_str())),ostr.str().size(),200);
-
-		//Return Stream
-		return lhs;
-	}
 }
 
 //Socket Initialize Function (Sets up the use of sockets, operating system dependent...)
 void socket_init();
 
 //Socket Create Function (Hosts a Socket Locally)
-SOCKET socket_create(const msl::ipv4 ip,const long time_out=0,const bool UDP=false,const unsigned int buffersize=200);
+SOCKET socket_create(const msl::ipv4 ip,const unsigned long time_out=0,const bool UDP=false,const unsigned int buffersize=200);
 
 //Socket Connection Function (Connects to a Remote Socket)
-SOCKET socket_connect(const msl::ipv4 ip,const long time_out=0,const bool UDP=false);
+SOCKET socket_connect(const msl::ipv4 ip,const unsigned long time_out=0,const bool UDP=false);
 
 //Socket Accept Function (Accepts a Remote Connection to a Local Socket)
-SOCKET socket_accept(const SOCKET socket,msl::ipv4& client_ip,const long time_out=0);
+SOCKET socket_accept(const SOCKET socket,msl::ipv4& client_ip,const unsigned long time_out=0);
 
 //Socket Close Function (Closes a Local Socket)
 SOCKET socket_close(const SOCKET socket);
 
 //Socket Available Function (Checks if there are Bytes to be Read, -1 on Error)
-int socket_available(const SOCKET socket,const long time_out=0);
+int socket_available(const SOCKET socket,const unsigned long time_out=0);
 
 //Socket Peek Function (Same as socket_read but Leaves Bytes in Socket Buffer)
-int socket_peek(const SOCKET socket,void* buffer,const unsigned int size,const long time_out=0,const int flags=0);
+int socket_peek(const SOCKET socket,void* buffer,const unsigned int size,const unsigned long time_out=0,const int flags=0);
 
 //Socket Read Function (Returns Number of Bytes Read, -1 on Error)
-int socket_read(const SOCKET socket,void* buffer,const unsigned int size,const long time_out=0,const int flags=0);
+int socket_read(const SOCKET socket,void* buffer,const unsigned int size,const unsigned long time_out=0,const int flags=0);
 
 //Socket Write Function (Returns Number of Bytes Sent, -1 on Error)
-int socket_write(const SOCKET socket,const void* buffer,const unsigned int size,const long time_out=200,const int flags=0);
+int socket_write(const SOCKET socket,const void* buffer,const unsigned int size,const unsigned long time_out=200,const int flags=0);
 
 //End Define Guards
 #endif
@@ -346,11 +333,17 @@ void service_client(msl::socket& client,const std::string& message)
 
 		//Load File
 		if(msl::file_to_string(web_root+request,file,true))
-			client<<msl::http_pack_string(file,mime_type,false);
+		{
+			std::string response=msl::http_pack_string(file,mime_type,false);
+			client.write(response.c_str(),response.size());
+		}
 
 		//Bad File
 		else if(msl::file_to_string(web_root+"/not_found.html",file,true))
-			client<<msl::http_pack_string(file);
+		{
+			std::string response=msl::http_pack_string(file);
+			client.write(response.c_str(),response.size());
+		}
 
 		//Close Connection
 		client.close();

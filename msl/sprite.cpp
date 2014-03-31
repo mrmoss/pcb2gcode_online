@@ -79,6 +79,13 @@ msl::sprite::sprite(const std::string& filename,const unsigned int number_of_fra
 	_width=width;
 	_height=height;
 }
+
+//Sprite Class Open Function (Loads Image From Disk)
+void msl::sprite::open(const std::string& filename,const unsigned int number_of_frames)
+{
+	*this=msl::sprite(filename,number_of_frames);
+}
+
 //Release Texture Function (Releases OpenGL Memory)
 void msl::sprite::release()
 {

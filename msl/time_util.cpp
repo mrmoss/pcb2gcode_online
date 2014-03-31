@@ -82,7 +82,7 @@
 #endif
 
 //Millis Function (Returns system time in milliseconds)
-long msl::millis()
+unsigned long msl::millis()
 {
 	//Get System Time
 	timeval time;

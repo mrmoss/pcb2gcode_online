@@ -1,6 +1,6 @@
 //Serial Header
 //	Created By:		Mike Moss
-//	Modified On:	05/20/2013
+//	Modified On:	02/23/2014
 
 //Begin Define Guards
 #ifndef MSL_SERIAL_H
@@ -65,13 +65,10 @@ namespace msl
 			int read(void* buffer,const unsigned int size,const unsigned int time_out=0);
 
 			//Write Function (Returns Number of Bytes Sent, -1 on Error)
-			int write(void* buffer,const unsigned int size,const unsigned int time_out=0);
-
-			//Connection Timeout Mutator
-			void set_timeout(const long time_out);
+			int write(const void* buffer,const unsigned int size,const unsigned int time_out=0);
 
 			//Connection Timeout Accessor
-			long timeout() const;
+			unsigned long timeout() const;
 
 			//System Port Accessor
 			SERIAL system_port() const;
@@ -84,7 +81,7 @@ namespace msl
 			SERIAL _port;
 			std::string _name;
 			unsigned int _baud;
-			long _time_out;
+			unsigned long _time_out;
 	};
 
 	//Serial Connection Function (Connects to a Port)
@@ -94,13 +91,13 @@ namespace msl
 	SERIAL serial_close(const SERIAL port);
 
 	//Serial Available Function (Checks if there are Bytes to be Read, -1 on Error)
-	int serial_available(const SERIAL port,const long time_out=0);
+	int serial_available(const SERIAL port,const unsigned long time_out=0);
 
 	//Serial Read Function (Returns Number of Bytes Read, -1 on Error)
-	int serial_read(const SERIAL port,void* buffer,const unsigned int size,const long time_out=200);
+	int serial_read(const SERIAL port,void* buffer,const unsigned int size,const unsigned long time_out=0);
 
 	//Serial Write Function (Returns Number of Bytes Sent, -1 on Error)
-	int serial_write(const SERIAL port,void* buffer,const unsigned int size,const long time_out=200);
+	int serial_write(const SERIAL port,const void* buffer,const unsigned int size,const unsigned long time_out=0);
 }
 
 //End Define Guards

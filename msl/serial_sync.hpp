@@ -28,6 +28,9 @@ namespace msl
 			//Constructor (Default)
 			serial_sync(const std::string& port="",const uint32_t baud=57600);
 
+			//Copy Assignment Operator
+			serial_sync& operator=(const serial_sync& copy);
+
 			//Setup Function (Sets up serial port)
 			void setup();
 

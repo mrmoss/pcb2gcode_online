@@ -118,13 +118,18 @@ std::vector<std::string> msl::list_serial_ports()
 				{
 					//Try to Connect to Port
 					msl::serial port("/dev/"+possible_ports[ii]);
-					port.connect();
 
-					//If Connected Close Port and Add to List
-					if(port.good())
+					//Check if Port is in Use
+					if(!port.good())
 					{
-						port.close();
-						list.push_back("/dev/"+possible_ports[ii]);
+						port.connect();
+
+						//If Connected Close Port and Add to List
+						if(port.good())
+						{
+							port.close();
+							list.push_back("/dev/"+possible_ports[ii]);
+						}
 					}
 
 					//Either Way Break

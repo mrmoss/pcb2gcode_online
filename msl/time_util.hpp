@@ -22,7 +22,7 @@
 namespace msl
 {
 	//Get System Time in Milliseconds
-	long millis();
+	unsigned long millis();
 }
 
 //End Define Guards

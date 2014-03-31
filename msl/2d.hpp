@@ -1,6 +1,6 @@
 //2D Graphics Header
 //	Created By:		Mike Moss
-//	Modified On:	05/19/2013
+//	Modified On:	12/27/2013
 
 //Required Libraries:
 //	gl
@@ -22,8 +22,11 @@
 //Glut Input Header
 #include "glut_input.hpp"
 
-//Font Header
-#include "font.hpp"
+//Glut UI Header
+#include "glut_ui.hpp"
+
+//Math Header
+#include <math.h>
 
 //Sprite Header
 #include "sprite.hpp"
@@ -49,22 +52,11 @@ namespace msl
 	extern double window_height;
 
 	//2D Start Function
-	void start_2d(const std::string& window_title="",const int window_width=640,const int window_height=480,const bool window_scale=true,
+	int start_2d(const std::string& window_title="",const int window_width=640,const int window_height=480,const bool window_scale=true,
 		const msl::color& color=msl::color(0.5,0.5,0.5,1),int argc=0,char** argv=NULL);
 
 	//2D Stop Function
 	void stop_2d();
-
-	//Basic Shape Drawing Functions
-	void draw_point(const double x,const double y,const msl::color& color=msl::color(1,1,1,1));
-	void draw_line(const double x1,const double y1,const double x2,const double y2,const msl::color& color=msl::color(1,1,1,1));
-	void draw_triangle(const double x1,const double y1,const double x2,const double y2,const double x3,const double y3,
-		const bool fill,const msl::color& color=msl::color(1,1,1,1));
-	void draw_rectangle(const double x,const double y,const double width,const double height,const bool fill,const msl::color& color=msl::color(1,1,1,1));
-	void draw_circle(const double x,const double y,const double radius,const msl::color& color=msl::color(1,1,1,1));
-
-	//Text Drawing Function
-	void draw_text(const double x,const double y,const std::string& text,const msl::color& color=msl::color(1,1,1,1));
 }
 
 //End Define Guards

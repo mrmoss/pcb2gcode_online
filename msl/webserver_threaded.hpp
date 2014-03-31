@@ -1,10 +1,10 @@
 //Web Server Threaded Header
 //	Created By:		Mike Moss
-//	Modified On:	10/03/2013
+//	Modified On:	03/30/2014
 
 //Required Libraries:
 // 	pthread
-//	wsock32 (windows only)
+//	Ws2_32 (windows only)
 
 //Begin Define Guards
 #ifndef MSL_WEBSERVER_THREADED_H
@@ -86,6 +86,9 @@ namespace msl
 
 //String Stream Header
 #include <sstream>
+
+//Time Utility Header
+#include "msl/time_util.hpp"
 
 //Web Server Threaded Header
 #include "msl/webserver_threaded.hpp"

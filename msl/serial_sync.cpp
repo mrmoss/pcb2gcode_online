@@ -24,6 +24,33 @@ msl::serial_sync::serial_sync(const std::string& port,const uint32_t baud):
 	}
 }
 
+//Copy Assignment Operator
+msl::serial_sync& msl::serial_sync::operator=(const msl::serial_sync& copy)
+{
+	//Check for Self Assignment
+	if(this!=&copy)
+	{
+		_baud=copy._baud;
+		_serial=copy._serial;
+
+		for(unsigned int ii=0;ii<MSL_SERIALSYNC_VARIABLES;++ii)
+		{
+			_data[ii]=copy._data[ii];
+			_flags[ii]=copy._flags[ii];
+		}
+
+		for(unsigned int ii=0;ii<MSL_SERIALSYNC_VARIABLES*3+1;++ii)
+		{
+			_tx_packet[ii]=copy._tx_packet[ii];
+			_rx_packet[ii]=copy._rx_packet[ii];
+		}
+
+		_rx_counter=copy._rx_counter;
+	}
+
+	return *this;
+}
+
 //Setup Function (Sets up serial port)
 void msl::serial_sync::setup()
 {
@@ -176,7 +203,8 @@ void msl::serial_sync::update_tx()
 		_tx_packet[3+1+_tx_packet[3]]=calculate_crc(_tx_packet,3+1+_tx_packet[3]);
 
 		//Send Packet
-		_serial.write(_tx_packet,3+1+_tx_packet[3]+1);
+		if(_serial.good())
+			_serial.write(_tx_packet,3+1+_tx_packet[3]+1);
 	}
 
 	//Reset Set Flags

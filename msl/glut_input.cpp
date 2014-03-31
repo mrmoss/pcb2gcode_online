@@ -1,6 +1,6 @@
 //Glut Input Source
 //	Created By:		Mike Moss
-//	Modified On:	04/24/2013
+//	Modified On:	11/23/2013
 
 //Required Libraries:
 //	gl
@@ -32,38 +32,17 @@ static bool special_released_2d[256];
 static bool mouse_down_2d[3];
 static bool mouse_pressed_2d[3];
 static bool mouse_released_2d[3];
+static int shifted_keys[256];
 
 //Glut Keyboard Down Callback
 static void keyboard_down_2d(unsigned char key,int x,int y)
 {
 	//Pressed
 	if(!keyboard_2d[key])
-	{
 		keyboard_pressed_2d[key]=true;
-
-		if(keyboard_pressed_2d[key]&&key>=97&&key<=122)
-		{
-			keyboard_pressed_2d[key-32]=true;
-		}
-
-		if(keyboard_pressed_2d[key]&&key>=65&&key<=90)
-		{
-			keyboard_pressed_2d[key+32]=true;
-		}
-	}
 
 	//Down
 	keyboard_2d[key]=true;
-
-	if(keyboard_2d[key]&&key>=97&&key<=122)
-	{
-		keyboard_2d[key-32]=true;
-	}
-
-	if(keyboard_2d[key]&&key>=65&&key<=90)
-	{
-		keyboard_2d[key+32]=true;
-	}
 }
 
 //Glut Keyboard Up Callback
@@ -72,31 +51,17 @@ static void keyboard_up_2d(unsigned char key,int x,int y)
 	//Up
 	keyboard_2d[key]=false;
 
-	if(!keyboard_2d[key]&&key>=97&&key<=122)
-	{
-		keyboard_2d[key-32]=false;
-	}
-
-	if(!keyboard_2d[key]&&key>=65&&key<=90)
-	{
-		keyboard_2d[key+32]=false;
-	}
-
 	//Released
 	keyboard_released_2d[key]=true;
 
-	if(keyboard_released_2d[key]&&key>=97&&key<=122)
+	//Incase of Shifts
+	if(shifted_keys[key]!=-1)
 	{
-		keyboard_released_2d[key-32]=true;
-		keyboard_2d[key-32]=false;
-		keyboard_pressed_2d[key-32]=false;
-	}
+		//Up
+		keyboard_2d[shifted_keys[key]]=false;
 
-	if(keyboard_released_2d[key]&&key>=65&&key<=90)
-	{
-		keyboard_released_2d[key+32]=true;
-		keyboard_2d[key+32]=false;
-		keyboard_pressed_2d[key+32]=false;
+		//Released
+		keyboard_released_2d[shifted_keys[key]]=true;
 	}
 }
 
@@ -104,10 +69,8 @@ static void keyboard_up_2d(unsigned char key,int x,int y)
 static void special_down_2d(int key,int x,int y)
 {
 	//Pressed
-	if (!special_2d[key])
-	{
+	if(!special_2d[key])
 		special_pressed_2d[key]=true;
-	}
 
 	//Down
 	special_2d[key]=true;
@@ -128,9 +91,7 @@ static void mouse_2d(int button,int state,int x,int y)
 {
 	//Pressed
 	if(!mouse_down_2d[button]&&!state)
-	{
 		mouse_pressed_2d[button]=true;
-	}
 
 	//Down/Up
 	mouse_down_2d[button]=!state;
@@ -180,33 +141,17 @@ static void mouse_motion_2d(int x,int y)
 //Input Check Function
 bool msl::input_check(const int key)
 {
-	//Escape Key
-	if(key==0x501B)
-	{
-		return keyboard_2d[27];
-	}
+	//Mouse Buttons
+	if(key>=800)
+		return mouse_down_2d[key-800];
 
-	//Mouse
-	else if(key>=0x2000)
-	{
-		return mouse_down_2d[key-0x2000];
-	}
+	//Special Keys
+	else if(key>=500)
+		return special_2d[key-500];
 
-	//Keyboard
-	else if(key>=0x1061&&key<=0x107A)
-	{
-		return keyboard_2d[key-0x1000]+keyboard_2d[key-0x1020];
-	}
-	else if(key>0x1000)
-	{
-		return keyboard_2d[key-0x1000];
-	}
-
-	//Special
-	else if(key<0x1000)
-	{
-		return special_2d[key];
-	}
+	//Regular Keys
+	else if(key==8||key==9||key==13||key==27||(key>=32&&key<=127))
+		return keyboard_2d[key];
 
 	//Other
 	return false;
@@ -215,33 +160,17 @@ bool msl::input_check(const int key)
 //Input Check Pressed Function
 bool msl::input_check_pressed(const int key)
 {
-	//Escape Key
-	if(key==0x501B)
-	{
-		return keyboard_pressed_2d[27];
-	}
+	//Mouse Buttons
+	if(key>=800)
+		return mouse_pressed_2d[key-800];
 
-	//Mouse
-	else if(key>=0x2000)
-	{
-		return mouse_pressed_2d[key-0x2000];
-	}
+	//Special Keys
+	else if(key>=500)
+		return special_pressed_2d[key-500];
 
-	//Keyboard
-	else if(key>=0x1061&&key<=0x107A)
-	{
-		return keyboard_pressed_2d[key-0x1000]+keyboard_pressed_2d[key-0x1020];
-	}
-	else if(key>0x1000)
-	{
-		return keyboard_pressed_2d[key-0x1000];
-	}
-
-	//Special
-	else if(key<0x1000)
-	{
-		return special_pressed_2d[key];
-	}
+	//Regular Keys
+	else if(key==8||key==9||key==13||key==27||(key>=32&&key<=127))
+		return keyboard_pressed_2d[key];
 
 	//Other
 	return false;
@@ -250,27 +179,17 @@ bool msl::input_check_pressed(const int key)
 //Input Check Released Function
 bool msl::input_check_released(const int key)
 {
-	//Mouse
-	if(key>=0x2000)
-	{
-		return mouse_released_2d[key-0x2000];
-	}
+	//Mouse Buttons
+	if(key>=800)
+		return mouse_released_2d[key-800];
 
-	//Keyboard
-	else if(key>=0x1061&&key<=0x107A)
-	{
-		return keyboard_released_2d[key-0x1000]+keyboard_released_2d[key-0x1020];
-	}
-	else if(key>0x1000)
-	{
-		return keyboard_released_2d[key-0x1000];
-	}
+	//Special Keys
+	else if(key>=500)
+		return special_released_2d[key-500];
 
-	//Special
-	else if(key<0x1000)
-	{
-		return special_released_2d[key];
-	}
+	//Regular Keys
+	else if(key==8||key==9||key==13||key==27||(key>=32&&key<=127))
+		return keyboard_released_2d[key];
 
 	//Other
 	return false;
@@ -302,6 +221,64 @@ void msl::input_setup(const bool scaled_window)
 		glutMotionFunc(mouse_motion_2d);
 		glutPassiveMotionFunc(mouse_motion_2d);
 	}
+
+	//Set  Mouse Coordinates
+	msl::mouse_x=-9999999;
+	msl::mouse_y=-9999999;
+
+	//Initialize List of Shifted Keys to -1
+	for(int ii=0;ii<256;++ii)
+		shifted_keys[ii]=-1;
+
+	//Add Alphabetical Characters to Shifted Keys
+	for(int ii=97;ii<=122;++ii)
+		shifted_keys[ii]=ii-32;
+	for(int ii=65;ii<=90;++ii)
+		shifted_keys[ii]=ii+32;
+
+	//Add Other Characters to Shifted Keys
+	shifted_keys['`']='~';
+	shifted_keys['1']='!';
+	shifted_keys['2']='@';
+	shifted_keys['3']='#';
+	shifted_keys['4']='$';
+	shifted_keys['5']='%';
+	shifted_keys['6']='^';
+	shifted_keys['7']='&';
+	shifted_keys['8']='*';
+	shifted_keys['9']='(';
+	shifted_keys['0']=')';
+	shifted_keys['-']='_';
+	shifted_keys['=']='+';
+	shifted_keys['[']='{';
+	shifted_keys[']']='}';
+	shifted_keys['\\']='|';
+	shifted_keys[';']=':';
+	shifted_keys['\'']='\"';
+	shifted_keys[',']='<';
+	shifted_keys['.']='>';
+	shifted_keys['/']='?';
+	shifted_keys['~']='`';
+	shifted_keys['!']='1';
+	shifted_keys['@']='2';
+	shifted_keys['#']='3';
+	shifted_keys['$']='4';
+	shifted_keys['%']='5';
+	shifted_keys['^']='6';
+	shifted_keys['&']='7';
+	shifted_keys['*']='8';
+	shifted_keys['(']='9';
+	shifted_keys[')']='0';
+	shifted_keys['_']='-';
+	shifted_keys['+']='=';
+	shifted_keys['{']='[';
+	shifted_keys['}']=']';
+	shifted_keys['|']='\\';
+	shifted_keys[':']=';';
+	shifted_keys['\"']='\'';
+	shifted_keys['<']=',';
+	shifted_keys['>']='.';
+	shifted_keys['?']='/';
 }
 
 //Input Released and Pressed Keys Reset Function (Call at end of timer function)

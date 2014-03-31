@@ -91,7 +91,7 @@ std::string msl::ipv4::str() const
 }
 
 //Constructor(Default)
-msl::socket::socket(const std::string& address):std::ostream(reinterpret_cast<std::streambuf*>(NULL)),_socket(SOCKET_ERROR),_hosting(false)
+msl::socket::socket(const std::string& address):_socket(SOCKET_ERROR),_hosting(false)
 {
 	//Parsing Variables
 	unsigned char ip[4]={0,0,0,0};
@@ -130,8 +130,7 @@ msl::socket::socket(const std::string& address):std::ostream(reinterpret_cast<st
 }
 
 //Copy Constructor
-msl::socket::socket(const msl::socket& copy):std::ostream(reinterpret_cast<std::streambuf*>(NULL)),
-	_address(copy._address),_socket(copy._socket),_hosting(copy._hosting)
+msl::socket::socket(const msl::socket& copy):_address(copy._address),_socket(copy._socket),_hosting(copy._hosting)
 {}
 
 //Copy Assignment Operator
@@ -157,6 +156,18 @@ msl::socket::operator bool() const
 bool msl::socket::operator!() const
 {
 	return !static_cast<bool>(*this);
+}
+
+//Equality Operation
+bool msl::socket::operator==(const msl::socket& rhs) const
+{
+	return _socket==rhs._socket;
+}
+
+//Not Equality Operation
+bool msl::socket::operator!=(const msl::socket& rhs) const
+{
+	return !(*this==rhs);
 }
 
 //Good Function (Tests if Socket is Good)
@@ -228,13 +239,13 @@ int msl::socket::available() const
 }
 
 //Read Function (Returns -1 on Error Else Returns Number of Bytes Read)
-int msl::socket::read(void* buffer,const unsigned int size,const long time_out,const int flags) const
+int msl::socket::read(void* buffer,const unsigned int size,const unsigned long time_out,const int flags) const
 {
 	return socket_read(_socket,buffer,size,time_out,flags);
 }
 
 //Write Function (Returns -1 on Error Else Returns Number of Bytes Sent)
-int msl::socket::write(const void* buffer,const unsigned int size,const long time_out,const int flags) const
+int msl::socket::write(const void* buffer,const unsigned int size,const unsigned long time_out,const int flags) const
 {
 	return socket_write(_socket,buffer,size,time_out,flags);
 }
@@ -276,13 +287,13 @@ void socket_init()
 }
 
 //Socket Create Function (Hosts a Socket Locally)
-SOCKET socket_create(const msl::ipv4 ip,const long time_out,const bool UDP,const unsigned int buffersize)
+SOCKET socket_create(const msl::ipv4 ip,const unsigned long time_out,const bool UDP,const unsigned int buffersize)
 {
 	//Initialize Sockets
 	socket_init();
 
 	//Connection Variables
-	long time_start=msl::millis();
+	unsigned long time_start=msl::millis();
 	sockaddr_in address=ip.build();
 	socklen_t address_length=sizeof(address);
 	int on=1;
@@ -336,13 +347,13 @@ SOCKET socket_create(const msl::ipv4 ip,const long time_out,const bool UDP,const
 }
 
 //Socket Connection Function (Connects to a Remote Socket)
-SOCKET socket_connect(const msl::ipv4 ip,const long time_out,const bool UDP)
+SOCKET socket_connect(const msl::ipv4 ip,const unsigned long time_out,const bool UDP)
 {
 	//Initialize Sockets
 	socket_init();
 
 	//Connection Variables
-	long time_start=msl::millis();
+	unsigned long time_start=msl::millis();
 	sockaddr_in address=ip.build();
 	int type=SOCK_STREAM;
 	SOCKET ret=SOCKET_ERROR;
@@ -368,7 +379,7 @@ SOCKET socket_connect(const msl::ipv4 ip,const long time_out,const bool UDP)
 }
 
 //Socket Accept Function (Accepts a Remote Connection to a Local Socket)
-SOCKET socket_accept(const SOCKET socket,msl::ipv4& client_ip,const long time_out)
+SOCKET socket_accept(const SOCKET socket,msl::ipv4& client_ip,const unsigned long time_out)
 {
 	//Check for Bad Host
 	if(socket==static_cast<unsigned int>(SOCKET_ERROR))
@@ -378,7 +389,7 @@ SOCKET socket_accept(const SOCKET socket,msl::ipv4& client_ip,const long time_ou
 	socket_init();
 
 	//Connection Variables
-	long time_start=msl::millis();
+	unsigned long time_start=msl::millis();
 	sockaddr_in address;
 	socklen_t address_length=sizeof(address);
 	SOCKET ret=SOCKET_ERROR;
@@ -426,7 +437,7 @@ SOCKET socket_close(const SOCKET socket)
 }
 
 //Socket Available Function (Checks if there are Bytes to be Read, -1 on Error)
-int socket_available(const SOCKET socket,const long time_out)
+int socket_available(const SOCKET socket,const unsigned long time_out)
 {
 	//Check for Bad Socket
 	if(socket==static_cast<unsigned int>(SOCKET_ERROR))
@@ -446,13 +457,13 @@ int socket_available(const SOCKET socket,const long time_out)
 }
 
 //Socket Peek Function (Same as socket_read but Leaves Bytes in Socket Buffer)
-int socket_peek(const SOCKET socket,void* buffer,const unsigned int size,const long time_out,const int flags)
+int socket_peek(const SOCKET socket,void* buffer,const unsigned int size,const unsigned long time_out,const int flags)
 {
 	return socket_read(socket,buffer,size,time_out,MSG_PEEK|flags);
 }
 
 //Socket Read Function (Reads Bytes from Socket Buffer)
-int socket_read(const SOCKET socket,void* buffer,const unsigned int size,const long time_out,const int flags)
+int socket_read(const SOCKET socket,void* buffer,const unsigned int size,const unsigned long time_out,const int flags)
 {
 	//Check for Bad Socket
 	if(socket==static_cast<unsigned int>(SOCKET_ERROR))
@@ -463,7 +474,7 @@ int socket_read(const SOCKET socket,void* buffer,const unsigned int size,const l
 
 	//Reading Variables
 	unsigned int bytes_unread=size;
-	long time_start=msl::millis();
+	unsigned long time_start=msl::millis();
 
 	//While Socket is Good and There are Bytes to Read
 	do
@@ -489,7 +500,7 @@ int socket_read(const SOCKET socket,void* buffer,const unsigned int size,const l
 }
 
 //Socket Write Function (Writes Bytes to Socket)
-int socket_write(const SOCKET socket,const void* buffer,const unsigned int size,const long time_out,const int flags)
+int socket_write(const SOCKET socket,const void* buffer,const unsigned int size,const unsigned long time_out,const int flags)
 {
 	//Check for Bad Socket
 	if(socket==static_cast<unsigned int>(SOCKET_ERROR))
@@ -500,7 +511,7 @@ int socket_write(const SOCKET socket,const void* buffer,const unsigned int size,
 
 	//Writing Variables
 	unsigned int bytes_unsent=size;
-	long time_start=msl::millis();
+	unsigned long time_start=msl::millis();
 
 	//While Socket is Good and There are Bytes to Send
 	do

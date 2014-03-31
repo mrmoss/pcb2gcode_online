@@ -1,6 +1,6 @@
 //Socket Utility Header
 //	Created By:		Mike Moss
-//	Modified On:	10/16/2013
+//	Modified On:	01/26/2014
 
 //Required Libraries:
 //	Ws2_32 (windows only)

@@ -35,6 +35,9 @@ namespace msl
 			//Constructor (String Filename)
 			sprite(const std::string& filename,const unsigned int number_of_frames=1);
 
+			//Sprite Class Open Function (Loads Image From Disk)
+			void open(const std::string& filename,const unsigned int number_of_frames=1);
+
 			//Release Texture Function (Releases OpenGL Memory)
 			void release();
 

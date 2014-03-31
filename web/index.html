@@ -121,7 +121,7 @@
 			{
 				var xmlhttp=new XMLHttpRequest();
 
-				xmlhttp.open("GET",encodeURIComponent("defaults"),true);
+				xmlhttp.open("POST",encodeURIComponent("defaults"),true);
 
 				xmlhttp.onreadystatechange=function()
 				{
@@ -229,7 +229,7 @@
 
 				var xmlhttp=new XMLHttpRequest();
 
-				xmlhttp.open("GET",encodeURIComponent("pcb2gcode="+JSON.stringify(submission)),true);
+				xmlhttp.open("POST",encodeURIComponent("pcb2gcode="+JSON.stringify(submission)),true);
 				xmlhttp.responseType="blob";
 
 				xmlhttp.onreadystatechange=function()
@@ -272,7 +272,7 @@
 
 				var xmlhttp=new XMLHttpRequest();
 
-				xmlhttp.open("GET",encodeURIComponent("pcb2gcode="+JSON.stringify(submission)),true);
+				xmlhttp.open("POST",encodeURIComponent("pcb2gcode="+JSON.stringify(submission)),true);
 				xmlhttp.responseType="blob";
 
 				xmlhttp.onreadystatechange=function()
@@ -322,7 +322,7 @@
 
 				var xmlhttp=new XMLHttpRequest();
 
-				xmlhttp.open("GET",encodeURIComponent("pcb2gcode="+JSON.stringify(submission)),true);
+				xmlhttp.open("POST",encodeURIComponent("pcb2gcode="+JSON.stringify(submission)),true);
 				xmlhttp.responseType="arraybuffer";
 
 				xmlhttp.onreadystatechange=function()

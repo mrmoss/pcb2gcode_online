@@ -196,7 +196,7 @@ bool service_client(msl::socket& client,const std::string& message)
 		//Drill Layers
 		else if(json_obj.get("drill").size()>0)
 		{
-			std::cout<<"\t\t\t\tgot a drill file!!!"<<std::endl;
+			//std::cout<<"\t\t\t\tgot a drill file!!!"<<std::endl;
 
 			std::string escaped=fix_newlines(json_obj.get("drill"));
 
@@ -269,7 +269,7 @@ bool service_client(msl::socket& client,const std::string& message)
 					pcb2gcode_command+="&& ./home.sh drill.ngc ";
 			}
 
-			std::cout<<"COMMAND\n"<<pcb2gcode_command<<"\nCOMMAND"<<std::endl;
+			//std::cout<<"COMMAND\n"<<pcb2gcode_command<<"\nCOMMAND"<<std::endl;
 
 			//Execute PCB2GCode Command
 			if(system(pcb2gcode_command.c_str())!=-1)
