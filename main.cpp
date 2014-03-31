@@ -1,6 +1,6 @@
 //PCB2GCODE Web Server Source
 //	Created By:		Mike Moss
-//	Modified On:	11/12/2013
+//	Modified On:	03/30/2014
 
 //File Utility Header
 #include "msl/file_util.hpp"
@@ -109,8 +109,8 @@ int main(int argc,char* argv[])
 //Our Service Client Function Definition
 bool service_client(msl::socket& client,const std::string& message)
 {
-	//try
-	//{
+	try
+	{
 		//Create Parser
 		std::istringstream istr(message);
 
@@ -373,9 +373,9 @@ bool service_client(msl::socket& client,const std::string& message)
 			//Return True (We serviced the client)
 			return true;
 		}
-	//}
-	//catch(...)
-	//{}
+	}
+	catch(...)
+	{}
 
 	//Default Return False (We did not service the client)
 	return false;
