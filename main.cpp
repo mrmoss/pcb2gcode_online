@@ -109,270 +109,273 @@ int main(int argc,char* argv[])
 //Our Service Client Function Definition
 bool service_client(msl::socket& client,const std::string& message)
 {
-	//Create Parser
-	std::istringstream istr(message);
+	//try
+	//{
+		//Create Parser
+		std::istringstream istr(message);
 
-	//std::cout<<message<<std::endl;
+		//std::cout<<message<<std::endl;
 
-	//Parse the Type
-	std::string type;
-	istr>>type;
+		//Parse the Type
+		std::string type;
+		istr>>type;
 
-	//Parse the Request
-	std::string request;
-	istr>>request;
+		//Parse the Request
+		std::string request;
+		istr>>request;
 
-	if(type=="POST")
-	{
-		std::string temp="";
-		unsigned int length=0;
-
-		for(unsigned int ii=0;ii<message.size();++ii)
+		if(type=="POST")
 		{
-			if(message[ii]=='\n')
+			std::string temp="";
+			unsigned int length=0;
+
+			for(unsigned int ii=0;ii<message.size();++ii)
 			{
-				std::string var;
-				std::string val;
-
-				std::istringstream istr(temp);
-
-				istr>>var;
-				istr>>val;
-
-				if(var=="Content-Length:")
+				if(message[ii]=='\n')
 				{
-					length=msl::to_int(val);
-					char* buffer=new char[length];
-					client.read(buffer,length);
-					request=std::string(buffer,length);
+					std::string var;
+					std::string val;
 
-					std::cout<<request<<std::endl;
-					break;
+					std::istringstream istr(temp);
+
+					istr>>var;
+					istr>>val;
+
+					if(var=="Content-Length:")
+					{
+						length=msl::to_int(val);
+						char* buffer=new char[length];
+						client.read(buffer,length);
+						request=std::string(buffer,length);
+
+						//std::cout<<request<<std::endl;
+						break;
+					}
+
+					temp="";
 				}
-
-				temp="";
-			}
-			else
-			{
-				temp+=message[ii];
-			}
-		}
-	}
-
-	//Translate Request
-	request=msl::http_to_ascii(request);
-
-	//Check For a Custom Request
-	if(msl::starts_with(request,"/defaults"))
-	{
-		//Create Response String
-		std::string response=msl::http_pack_string(pcb2gcode_defaults,"application/json");
-
-		//Send Response
-		client.write(response.c_str(),response.size());
-
-		//Close Client Connection (Not a Keep-Alive Request)
-		client.close();
-
-		//Return True (We serviced the client)
-		return true;
-	}
-
-	//Check For a Custom Request
-	else if(msl::starts_with(request,"/pcb2gcode="))
-	{
-		//Extract JSON Object
-		std::string json_str=request.substr(11,request.size()-11);
-
-		//Create JSON Objects
-		msl::json json_obj(json_str);
-		msl::json json_options(json_obj.get("options"));
-
-		//Selection Booleans for Later
-		bool error=false;
-		bool picture=false;
-		bool front=false;
-		bool drill=false;
-
-		//Create a unique id, this is based on the system time...
-		unsigned long thread_id_number=msl::millis();
-
-		while(msl::file_exists(msl::to_string(thread_id_number)))
-			++thread_id_number;
-
-		//Make Unique Id String
-		std::string thread_id=msl::to_string(thread_id_number);
-
-		//Create Directory Out of Unique Id
-		std::string mkdir="mkdir "+thread_id;
-
-		if(system(mkdir.c_str()))
-		{}
-
-		//Build PCB2GCode Command
-		std::string pcb2gcode_command="cp home.sh "+thread_id+" && cd "+thread_id+" && pcb2gcode ";
-
-		//Pictures
-		if(json_obj.get("picture").size()>0)
-		{
-			std::string escaped=fix_newlines(json_obj.get("picture"));
-
-
-			msl::string_to_file(escaped,thread_id+"/picture.test");
-			pcb2gcode_command+="--front picture.test ";
-			pcb2gcode_command+="--front-output picture.ngc ";
-			picture=true;
-		}
-
-		//Mill Layers
-		else if(json_obj.get("front").size()>0)
-		{
-			std::string escaped=fix_newlines(json_obj.get("front"));
-
-			msl::string_to_file(escaped,thread_id+"/front.test");
-			pcb2gcode_command+="--front front.test ";
-			pcb2gcode_command+="--front-output front.ngc ";
-			front=true;
-		}
-
-		//Drill Layers
-		else if(json_obj.get("drill").size()>0)
-		{
-			//std::cout<<"\t\t\t\tgot a drill file!!!"<<std::endl;
-
-			std::string escaped=fix_newlines(json_obj.get("drill"));
-
-			msl::string_to_file(escaped,thread_id+"/drill.test");
-			pcb2gcode_command+="--drill drill.test ";
-			pcb2gcode_command+="--drill-output drill.ngc ";
-			drill=true;
-		}
-
-		//Check for a Gerber File
-		if(picture||front||drill)
-		{
-			//Extract Z Options
-			msl::json json_z(json_options.get("z"));
-				pcb2gcode_command+="--zwork "+msl::to_string(msl::to_double(json_z.get("work")))+" ";
-				pcb2gcode_command+="--zsafe "+msl::to_string(msl::to_double(json_z.get("safe")))+" ";
-				pcb2gcode_command+="--zcut "+msl::to_string(msl::to_double(json_z.get("cut")))+" ";
-				pcb2gcode_command+="--zdrill "+msl::to_string(msl::to_double(json_z.get("drill")))+" ";
-				pcb2gcode_command+="--zchange "+msl::to_string(msl::to_double(json_z.get("change")))+" ";
-
-			//Extract Cutter Information
-			msl::json json_cut(json_options.get("cut"));
-				pcb2gcode_command+="--cutter-diameter "+msl::to_string(msl::to_double(json_cut.get("diameter")))+" ";
-				pcb2gcode_command+="--cut-feed "+msl::to_string(msl::to_double(json_cut.get("feed")))+" ";
-				pcb2gcode_command+="--cut-speed "+msl::to_string(msl::to_double(json_cut.get("speed")))+" ";
-				pcb2gcode_command+="--cut-infeed "+msl::to_string(msl::to_double(json_cut.get("infeed")))+" ";
-
-			//Extract Cutter Information
-			msl::json json_outline(json_options.get("outline"));
-
-				if(msl::to_bool(json_outline.get("fill")))
+				else
 				{
-					pcb2gcode_command+="--fill-outline ";
-					pcb2gcode_command+="--outline-width "+msl::to_string(msl::to_double(json_outline.get("width")))+" ";
+					temp+=message[ii];
 				}
-
-			//Extract Mill Information
-			msl::json json_mill(json_options.get("mill"));
-				pcb2gcode_command+="--mill-feed "+msl::to_string(msl::to_double(json_mill.get("feed")))+" ";
-				pcb2gcode_command+="--mill-speed "+msl::to_string(msl::to_double(json_mill.get("speed")))+" ";
-
-			//Extract Drill Information
-			msl::json json_drill(json_options.get("drill"));
-				pcb2gcode_command+="--drill-feed "+msl::to_string(msl::to_double(json_drill.get("feed")))+" ";
-				pcb2gcode_command+="--drill-speed "+msl::to_string(msl::to_double(json_drill.get("speed")))+" ";
-
-			//Extract Other Information
-			msl::json json_other(json_options.get("other"));
-				pcb2gcode_command+="--offset "+msl::to_string(msl::to_double(json_other.get("offset")))+" ";
-				pcb2gcode_command+="--extra-passes "+msl::to_string(msl::to_int(json_other.get("extra_passes")))+" ";
-
-			if(msl::to_bool(json_other.get("use_mill_as_drill")))
-				pcb2gcode_command+="--milldrill ";
-
-			if(msl::to_bool(json_other.get("drill_front")))
-				pcb2gcode_command+="--drill-front ";
-
-			if(msl::to_bool(json_other.get("mirror_absolute")))
-				pcb2gcode_command+="--mirror-absolute ";
-
-			if(msl::to_bool(json_other.get("return_home")))
-			{
-				if(picture)
-					pcb2gcode_command+="&& ./home.sh picture.ngc ";
-
-				else if(front)
-					pcb2gcode_command+="&& ./home.sh front.ngc ";
-
-				else if(drill)
-					pcb2gcode_command+="&& ./home.sh drill.ngc ";
-			}
-
-			//std::cout<<"COMMAND\n"<<pcb2gcode_command<<"\nCOMMAND"<<std::endl;
-
-			//Execute PCB2GCode Command
-			if(system(pcb2gcode_command.c_str())!=-1)
-			{
-				std::string response;
-
-				if(picture)
-				{
-					std::string gcode;
-
-					if(msl::file_to_string(thread_id+"/outp0_original_front.png",gcode))
-						response=msl::http_pack_string(gcode,"image/png");
-					else
-						error=true;
-				}
-
-				else if(front)
-				{
-					std::string gcode;
-
-					if(msl::file_to_string(thread_id+"/front.ngc",gcode))
-						response=msl::http_pack_string(gcode,"text/plain");
-					else
-						error=true;
-				}
-
-				else if(drill)
-				{
-					std::string gcode;
-
-					if(msl::file_to_string(thread_id+"/drill.ngc",gcode))
-						response=msl::http_pack_string(gcode,"text/plain");
-					else
-						error=true;
-				}
-
-				//Send GCode
-				if(!error)
-					client.write(response.c_str(),response.size());
 			}
 		}
 
-		//On Error return "error"
-		if(error)
+		//Translate Request
+		request=msl::http_to_ascii(request);
+
+		//Check For a Custom Request
+		if(msl::starts_with(request,"/defaults"))
 		{
-			std::string response="error";
+			//Create Response String
+			std::string response=msl::http_pack_string(pcb2gcode_defaults,"application/json");
+
+			//Send Response
 			client.write(response.c_str(),response.size());
+
+			//Close Client Connection (Not a Keep-Alive Request)
+			client.close();
+
+			//Return True (We serviced the client)
+			return true;
 		}
 
-		//Cleanup files...the sleep seems to make life better...
-		std::string rmdir="sleep 0.1 && rm -rf "+thread_id;
+		//Check For a Custom Request
+		else if(msl::starts_with(request,"/pcb2gcode="))
+		{
+			//Extract JSON Object
+			std::string json_str=request.substr(11,request.size()-11);
 
-		if(system(rmdir.c_str()))
-		{}
+			//Create JSON Objects
+			msl::json json_obj(json_str);
+			msl::json json_options(json_obj.get("options"));
 
-		//Close Client Connection (Not a Keep-Alive Request)
-		client.close();
+			//Selection Booleans for Later
+			bool error=false;
+			bool picture=false;
+			bool front=false;
+			bool drill=false;
 
-		//Return True (We serviced the client)
-		return true;
-	}
+			//Create a unique id, this is based on the system time...
+			unsigned long thread_id_number=msl::millis();
+
+			while(msl::file_exists(msl::to_string(thread_id_number)))
+				++thread_id_number;
+
+			//Make Unique Id String
+			std::string thread_id=msl::to_string(thread_id_number);
+
+			//Create Directory Out of Unique Id
+			std::string mkdir="mkdir "+thread_id;
+
+			if(system(mkdir.c_str()))
+			{}
+
+			//Build PCB2GCode Command
+			std::string pcb2gcode_command="cp home.sh "+thread_id+" && cd "+thread_id+" && pcb2gcode ";
+
+			//Pictures
+			if(json_obj.get("picture").size()>0)
+			{
+				std::string escaped=fix_newlines(json_obj.get("picture"));
+
+
+				msl::string_to_file(escaped,thread_id+"/picture.test");
+				pcb2gcode_command+="--front picture.test ";
+				pcb2gcode_command+="--front-output picture.ngc ";
+				picture=true;
+			}
+
+			//Mill Layers
+			else if(json_obj.get("front").size()>0)
+			{
+				std::string escaped=fix_newlines(json_obj.get("front"));
+
+				msl::string_to_file(escaped,thread_id+"/front.test");
+				pcb2gcode_command+="--front front.test ";
+				pcb2gcode_command+="--front-output front.ngc ";
+				front=true;
+			}
+
+			//Drill Layers
+			else if(json_obj.get("drill").size()>0)
+			{
+				std::string escaped=fix_newlines(json_obj.get("drill"));
+
+				msl::string_to_file(escaped,thread_id+"/drill.test");
+				pcb2gcode_command+="--drill drill.test ";
+				pcb2gcode_command+="--drill-output drill.ngc ";
+				drill=true;
+			}
+
+			//Check for a Gerber File
+			if(picture||front||drill)
+			{
+				//Extract Z Options
+				msl::json json_z(json_options.get("z"));
+					pcb2gcode_command+="--zwork "+msl::to_string(msl::to_double(json_z.get("work")))+" ";
+					pcb2gcode_command+="--zsafe "+msl::to_string(msl::to_double(json_z.get("safe")))+" ";
+					pcb2gcode_command+="--zcut "+msl::to_string(msl::to_double(json_z.get("cut")))+" ";
+					pcb2gcode_command+="--zdrill "+msl::to_string(msl::to_double(json_z.get("drill")))+" ";
+					pcb2gcode_command+="--zchange "+msl::to_string(msl::to_double(json_z.get("change")))+" ";
+
+				//Extract Cutter Information
+				msl::json json_cut(json_options.get("cut"));
+					pcb2gcode_command+="--cutter-diameter "+msl::to_string(msl::to_double(json_cut.get("diameter")))+" ";
+					pcb2gcode_command+="--cut-feed "+msl::to_string(msl::to_double(json_cut.get("feed")))+" ";
+					pcb2gcode_command+="--cut-speed "+msl::to_string(msl::to_double(json_cut.get("speed")))+" ";
+					pcb2gcode_command+="--cut-infeed "+msl::to_string(msl::to_double(json_cut.get("infeed")))+" ";
+
+				//Extract Cutter Information
+				msl::json json_outline(json_options.get("outline"));
+
+					if(msl::to_bool(json_outline.get("fill")))
+					{
+						pcb2gcode_command+="--fill-outline ";
+						pcb2gcode_command+="--outline-width "+msl::to_string(msl::to_double(json_outline.get("width")))+" ";
+					}
+
+				//Extract Mill Information
+				msl::json json_mill(json_options.get("mill"));
+					pcb2gcode_command+="--mill-feed "+msl::to_string(msl::to_double(json_mill.get("feed")))+" ";
+					pcb2gcode_command+="--mill-speed "+msl::to_string(msl::to_double(json_mill.get("speed")))+" ";
+
+				//Extract Drill Information
+				msl::json json_drill(json_options.get("drill"));
+					pcb2gcode_command+="--drill-feed "+msl::to_string(msl::to_double(json_drill.get("feed")))+" ";
+					pcb2gcode_command+="--drill-speed "+msl::to_string(msl::to_double(json_drill.get("speed")))+" ";
+
+				//Extract Other Information
+				msl::json json_other(json_options.get("other"));
+					pcb2gcode_command+="--offset "+msl::to_string(msl::to_double(json_other.get("offset")))+" ";
+					pcb2gcode_command+="--extra-passes "+msl::to_string(msl::to_int(json_other.get("extra_passes")))+" ";
+
+				if(msl::to_bool(json_other.get("use_mill_as_drill")))
+					pcb2gcode_command+="--milldrill ";
+
+				if(msl::to_bool(json_other.get("drill_front")))
+					pcb2gcode_command+="--drill-front ";
+
+				if(msl::to_bool(json_other.get("mirror_absolute")))
+					pcb2gcode_command+="--mirror-absolute ";
+
+				if(msl::to_bool(json_other.get("return_home")))
+				{
+					if(picture)
+						pcb2gcode_command+="&& ./home.sh picture.ngc ";
+
+					else if(front)
+						pcb2gcode_command+="&& ./home.sh front.ngc ";
+
+					else if(drill)
+						pcb2gcode_command+="&& ./home.sh drill.ngc ";
+				}
+
+				//std::cout<<"COMMAND\n"<<pcb2gcode_command<<"\nCOMMAND"<<std::endl;
+
+				//Execute PCB2GCode Command
+				if(system(pcb2gcode_command.c_str())!=-1)
+				{
+					std::string response;
+
+					if(picture)
+					{
+						std::string gcode;
+
+						if(msl::file_to_string(thread_id+"/outp0_original_front.png",gcode))
+							response=msl::http_pack_string(gcode,"image/png");
+						else
+							error=true;
+					}
+
+					else if(front)
+					{
+						std::string gcode;
+
+						if(msl::file_to_string(thread_id+"/front.ngc",gcode))
+							response=msl::http_pack_string(gcode,"text/plain");
+						else
+							error=true;
+					}
+
+					else if(drill)
+					{
+						std::string gcode;
+
+						if(msl::file_to_string(thread_id+"/drill.ngc",gcode))
+							response=msl::http_pack_string(gcode,"text/plain");
+						else
+							error=true;
+					}
+
+					//Send GCode
+					if(!error)
+						client.write(response.c_str(),response.size());
+				}
+			}
+
+			//On Error return "error"
+			if(error)
+			{
+				std::string response="error";
+				client.write(response.c_str(),response.size());
+			}
+
+			//Cleanup files...the sleep seems to make life better...
+			std::string rmdir="sleep 0.1 && rm -rf "+thread_id;
+
+			if(system(rmdir.c_str()))
+			{}
+
+			//Close Client Connection (Not a Keep-Alive Request)
+			client.close();
+
+			//Return True (We serviced the client)
+			return true;
+		}
+	//}
+	//catch(...)
+	//{}
 
 	//Default Return False (We did not service the client)
 	return false;

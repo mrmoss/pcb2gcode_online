@@ -76,6 +76,7 @@
 				}
 				catch(e)
 				{
+					alert(e);
 					return "error";
 				}
 			}
@@ -243,16 +244,8 @@
 
 						reader.onload=function()
 						{
-							if(ArrayBufferToString(this.result)=="error")
-							{
-								mill_blob=undefined;
-								alert("Bad Gerber File!");
-							}
-							else
-							{
-								document.getElementById("mill_download_button").disabled=false;
-								get_picture("mill_picture","mill","picture");
-							}
+							document.getElementById("mill_download_button").disabled=false;
+							get_picture("mill_picture","mill");
 						};
 
 						reader.readAsArrayBuffer(xmlhttp.response);
@@ -266,7 +259,7 @@
 			{
 				var submission={};
 
-				submission.front=drill_layer_data;
+				submission.drill=drill_layer_data;
 				submission.options=options_obj;
 				drill_blob=undefined;
 				document.getElementById("drill_download_button").disabled=true;
@@ -286,16 +279,8 @@
 
 						reader.onload=function()
 						{
-							if(ArrayBufferToString(this.result)=="error")
-							{
-								drill_blob=undefined;
-								alert("Bad Gerber File!");
-							}
-							else
-							{
-								document.getElementById("drill_download_button").disabled=false;
-								get_picture("drill_picture","drill","picture");
-							}
+							document.getElementById("drill_download_button").disabled=false;
+							get_picture("drill_picture","drill");
 						};
 
 						reader.readAsArrayBuffer(xmlhttp.response);
@@ -305,20 +290,15 @@
 				xmlhttp.send(encodeURIComponent("/pcb2gcode="+JSON.stringify(submission)));
 			}
 
-			function get_picture(img_element,layer,type)
+			function get_picture(img_element,layer)
 			{
 				var submission={};
 
 				if(layer=="mill")
-				{
-					if(type=="picture")
-						submission.picture=mill_layer_data;
-				}
+					submission.picture=mill_layer_data;
 				else if(layer=="drill")
-				{
-					if(type=="picture")
-						submission.picture=drill_layer_data;
-				}
+					submission.picture=drill_layer_data;
+
 				submission.options=options_obj;
 
 				var xmlhttp=new XMLHttpRequest();
