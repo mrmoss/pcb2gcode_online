@@ -1,6 +1,6 @@
 //String Utility Header
 //	Created By:		Mike Moss
-//	Modified On:	11/17/2013
+//	Modified On:	05/12/2014
 
 //Begin Define Guards
 #ifndef MSL_STRING_UTIL_H
@@ -66,6 +66,9 @@ namespace msl
 
 	//To Upper Function (Returns a copy of a string that is all upper case)
 	std::string to_upper(const std::string& str);
+
+	//Search and Replace (Searches "str" for all occurences of "find" with "replace".)
+	std::string search_and_replace(std::string str,const std::string& find,const std::string& replace);
 
 	//Extract Until Function (Returns a string containing data from the start of the passed string until
 	//	the delimiter is reached).

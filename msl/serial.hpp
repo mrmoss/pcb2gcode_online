@@ -1,6 +1,6 @@
 //Serial Header
 //	Created By:		Mike Moss
-//	Modified On:	02/23/2014
+//	Modified On:	04/21/2014
 
 //Begin Define Guards
 #ifndef MSL_SERIAL_H
@@ -66,6 +66,7 @@ namespace msl
 
 			//Write Function (Returns Number of Bytes Sent, -1 on Error)
 			int write(const void* buffer,const unsigned int size,const unsigned int time_out=0);
+			int write(const std::string& str);
 
 			//Connection Timeout Accessor
 			unsigned long timeout() const;

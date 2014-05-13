@@ -1,6 +1,6 @@
 //String Utility Source
 //	Created By:		Mike Moss
-//	Modified On:	11/17/2013
+//	Modified On:	05/12/2014
 
 //Definitions for "string_util.hpp"
 #include "string_util.hpp"
@@ -128,6 +128,20 @@ std::string msl::to_upper(const std::string& str)
 
 	//Return Upper Case String
 	return return_str;
+}
+
+//Search and Replace (Searches "str" for all occurences of "find" with "replace".)
+std::string msl::search_and_replace(std::string str,const std::string& find,const std::string& replace)
+{
+	size_t found=str.find(find,0);
+
+	while(found!=std::string::npos)
+	{
+		str.replace(found,find.size(),replace);
+		found=str.find(find,found-find.size()+replace.size());
+	}
+
+	return str;
 }
 
 //Extract Until Function (Returns a string containing data from the start of the passed string until

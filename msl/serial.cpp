@@ -1,6 +1,6 @@
 //Serial Source
 //	Created By:		Mike Moss
-//	Modified On:	02/23/2014
+//	Modified On:	04/21/2014
 
 //Definitions for "serial.hpp"
 #include "serial.hpp"
@@ -135,6 +135,12 @@ int msl::serial::read(void* buffer,const unsigned int size,const unsigned int ti
 int msl::serial::write(const void* buffer,const unsigned int size,const unsigned int time_out)
 {
 	return serial_write(_port,buffer,size,time_out);
+}
+
+//Write String Function (Returns -1 on Error Else Returns Number of Bytes Sent)
+int msl::serial::write(const std::string& str)
+{
+	return write(str.c_str(),str.size(),0);
 }
 
 //System Port Accessor

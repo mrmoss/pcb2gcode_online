@@ -1,6 +1,6 @@
 //Web Server Source
 //	Created By:		Mike Moss
-//	Modified On:	03/30/2014
+//	Modified On:	04/11/2014
 
 //Required Libraries:
 //	Ws2_32 (windows only)
@@ -111,7 +111,7 @@ void msl::webserver::update()
 
 
 	//Give OS a Break
-	usleep(0);
+	msl::nsleep(1000000);
 }
 
 //Close Function (Closes Server)
@@ -133,7 +133,7 @@ void msl::webserver::close()
 void msl::webserver::service_client(msl::socket& client,const std::string& message)
 {
 	//If User Options Fail
-	if(user_service_client==NULL||!user_service_client(client,message))
+	if(_user_service_client==NULL||!_user_service_client(client,message))
 	{
 		//Get Requests
 		if(msl::starts_with(message,"GET"))
@@ -148,6 +148,9 @@ void msl::webserver::service_client(msl::socket& client,const std::string& messa
 
 			//Translate Request
 			request=msl::http_to_ascii(request);
+
+			//Remove ../'s
+			request=msl::search_and_replace(request,"..","");
 
 			//Check for Index
 			if(request=="/")

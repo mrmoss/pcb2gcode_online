@@ -1,6 +1,6 @@
 //Socket Source
 //	Created By:		Mike Moss
-//	Modified On:	10/16/2013
+//	Modified On:	04/21/2014
 
 //Required Libraries:
 //	Ws2_32 (windows only)
@@ -245,9 +245,15 @@ int msl::socket::read(void* buffer,const unsigned int size,const unsigned long t
 }
 
 //Write Function (Returns -1 on Error Else Returns Number of Bytes Sent)
-int msl::socket::write(const void* buffer,const unsigned int size,const unsigned long time_out,const int flags) const
+int msl::socket::write(const void* buffer,const unsigned int size,const unsigned long time_out,const int flags)
 {
 	return socket_write(_socket,buffer,size,time_out,flags);
+}
+
+//Write String Function (Returns -1 on Error Else Returns Number of Bytes Sent)
+int msl::socket::write(const std::string& str)
+{
+	return write(str.c_str(),str.size(),0);
 }
 
 //IP Address Accessor (Read Only)

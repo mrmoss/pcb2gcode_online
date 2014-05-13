@@ -1,6 +1,6 @@
 //File Utility Source
 //	Created By:		Mike Moss
-//	Modified On:	12/09/2013
+//	Modified On:	04/11/2014
 
 //Definitions for "file_util.hpp"
 #include "file_util.hpp"
@@ -426,7 +426,7 @@ bool msl::string_to_file(const std::string& data,const std::string& filename,con
 	std::ofstream ostr(filename.c_str(),flags);
 
 	//Write New File
-	saved=(ostr<<data);
+	saved=(bool)(ostr<<data);
 
 	//Close File
 	ostr.close();

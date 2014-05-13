@@ -1,6 +1,6 @@
 //Web Server Threaded Source
 //	Created By:		Mike Moss
-//	Modified On:	03/30/2014
+//	Modified On:	04/11/2014
 
 //Required Libraries:
 // 	pthread
@@ -53,6 +53,9 @@ void service_client(msl::socket client,const std::string&message,const std::stri
 
 			//Translate Request
 			request=msl::http_to_ascii(request);
+
+			//Remove ../'s
+			request=msl::search_and_replace(request,"..","");
 
 			//Check for Index
 			if(request=="/")
@@ -134,7 +137,7 @@ static void* client_thread(void* args)
 		while(true)
 		{
 			//Give OS a Break
-			usleep(0);
+			msl::nsleep(1000000);
 
 			//Temp
 			char byte='\n';
@@ -229,7 +232,7 @@ void msl::webserver_threaded::update()
 	}
 
 	//Give OS a Break
-	usleep(0);
+	msl::nsleep(1000000);
 }
 
 //Close Function (Closes Server) (Warning!!!  This doesn't close all the threads, there is no way to kill a running joined thread in C++11...yet...)

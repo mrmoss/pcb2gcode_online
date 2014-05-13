@@ -1,6 +1,6 @@
 //Web Server Header
 //	Created By:		Mike Moss
-//	Modified On:	03/30/2014
+//	Modified On:	04/11/2014
 
 //Required Libraries:
 //	Ws2_32 (windows only)
@@ -115,7 +115,7 @@ int main(int argc,char* argv[])
 		server.update();
 
 		//Give OS a Break
-		usleep(0);
+		msl::nsleep(1000000);
 	}
 
 	//Call Me Plz T_T
@@ -140,7 +140,7 @@ bool service_client(msl::socket& client,const std::string& message)
 	if(request=="/custom_request")
 	{
 		//Send Custom Message
-		client<<"custom request detected!";
+		client.write("custom request detected!");
 
 		//Close Client Connection (Not a Keep-Alive Request)
 		client.close();

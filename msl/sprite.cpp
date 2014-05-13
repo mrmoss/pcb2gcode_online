@@ -48,7 +48,7 @@ static unsigned int load_texture(const std::string& filename,unsigned int& width
 		throw std::runtime_error("msl::load_texture - bad filename, is the filename correct?");
 
 	//Clean Up
-	delete[] texture_data;
+	free(texture_data);
 
 	//Return Good Texture
 	return return_texture;

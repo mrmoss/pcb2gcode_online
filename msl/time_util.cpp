@@ -1,6 +1,6 @@
 //Time Utilities Source
 //	Created By:		Mike Moss
-//	Modified On:	05/19/2013
+//	Modified On:	04/11/2014
 
 //Definitions for "time_util.hpp"
 #include "time_util.hpp"
@@ -8,10 +8,12 @@
 //C Standard Library Header
 #include <cstdlib>
 
+//Time Header
+#include <time.h>
+
 //Windows Dependices
 #if(defined(_WIN32)&&!defined(__CYGWIN__))
 	#include <stdint.h>
-	#include <time.h>
 
 	//Define the Unix Epoch
 	#define DELTA_EPOCH_IN_MICROSECS 11644473600000000ULL
@@ -69,13 +71,6 @@
 		return 0;
 	}
 
-	//Micro Second Sleep Function (Used for relinquishing time slices)
-	int usleep(long useconds)
-	{
-		Sleep(useconds/1000);
-		return 0;
-	}
-
 //Unix Dependices
 #else
 	#include <sys/time.h>
@@ -90,4 +85,14 @@ unsigned long msl::millis()
 
 	//Return System Time in Milliseconds (seconds*1000+microseconds/1000)
 	return time.tv_sec*1000+time.tv_usec/1000;
+}
+
+//Nano Second Sleep Function (Used for relinquishing time slices)
+int msl::nsleep(long nseconds)
+{
+	timespec tt0,tt1;
+	tt0.tv_sec=0;
+	tt0.tv_nsec=nseconds;
+
+	return nanosleep(&tt0,&tt1);
 }
